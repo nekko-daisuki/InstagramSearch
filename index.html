@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>IG-like AND Search</title>
+<title>IG-like AND Search (fast)</title>
 <style>
   :root { --gap: 2px; }
   * { box-sizing: border-box; }
@@ -19,13 +19,15 @@
   .button { padding:10px 14px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer; }
   main { padding: var(--gap); }
   .grid { display:grid; gap: var(--gap); grid-template-columns: repeat(3, 1fr); }
-  .card { position:relative; aspect-ratio:1/1; overflow:hidden; background:#f6f6f6; }
+  .card { position:relative; aspect-ratio:1/1; overflow:hidden; background:#eee; }
   .card a { display:block; width:100%; height:100%; }
   .card img { width:100%; height:100%; object-fit:cover; display:block; }
   .badge { position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 6px; border-radius:6px; }
   .status { padding:8px 10px; color:#666; font-size:12px; border-top:1px solid #f4f4f4; }
   .warn { background:#fff7f7; border:1px solid #ffd7d7; color:#a40000; padding:8px 10px; border-radius:8px; margin:8px 10px; font-size:12px; }
 </style>
+<link rel="preconnect" href="https://encrypted-tbn0.gstatic.com">
+<link rel="dns-prefetch" href="https://encrypted-tbn0.gstatic.com">
 </head>
 <body>
 <header>
@@ -49,8 +51,8 @@
 
 <script type="module">
 (() => {
-  const GOOGLE_API_KEY = 'API_KEY_HERE';          // ← あなたのAPIキー
-  const GOOGLE_CX = '3419ec5b148fd47ea';          // あなたのPSE ID
+  const GOOGLE_API_KEY = 'AIzaSyA2Rv2Xe8-IitstdKxwE4xm6G13IHC38ys';
+  const GOOGLE_CX = '3419ec5b148fd47ea';
 
   const chipsEl  = document.getElementById('chips');
   const kwInput  = document.getElementById('kw');
@@ -87,31 +89,32 @@
     const andExpr = keywords.map(w => `"${w}"`).join(' AND ');
     return `site:instagram.com (${andExpr})`;
   }
-  function pickImage(item){
-    return item?.link || item?.image?.thumbnailLink || null; // フル画像優先
+  function pickThumb(item){
+    return item?.image?.thumbnailLink || item?.link || null;
   }
   function renderItems(items){
+    const frag = document.createDocumentFragment();
     for(const it of (items||[])){
-      const imgUrl = pickImage(it);
+      const thumb = pickThumb(it);
       const pageUrl = it?.image?.contextLink || it?.link;
-      if(!imgUrl || !pageUrl) continue;
+      if(!thumb || !pageUrl) continue;
       if(seenLinks.has(pageUrl)) continue;
       seenLinks.add(pageUrl);
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
         <a href="${pageUrl}" target="_blank" rel="noopener">
-          <img loading="lazy" src="${imgUrl}" alt="" />
+          <img loading="lazy" decoding="async" fetchpriority="low" src="${thumb}" alt="" />
           <span class="badge">画像</span>
         </a>`;
-      gridEl.appendChild(card);
+      frag.appendChild(card);
     }
+    gridEl.appendChild(frag);
   }
   async function fetchNext(){
     if(fetching || !hasNext) return;
     const q = buildQuery();
     if(!q){ statusEl.textContent = 'キーワードを追加してください'; return; }
-    if(!GOOGLE_API_KEY || GOOGLE_API_KEY === 'API_KEY_HERE'){ keyWarn.style.display=''; return; } else { keyWarn.style.display='none'; }
 
     fetching = true;
     statusEl.textContent = '読み込み中…';
@@ -121,14 +124,14 @@
       url.searchParams.set('cx', GOOGLE_CX);
       url.searchParams.set('q', q);
       url.searchParams.set('searchType', 'image');
-      url.searchParams.set('imgSize', 'large');   // ← 方法2（高画質指定）
-      url.searchParams.set('num', '10');
+      url.searchParams.set('imgSize', 'medium');
+      url.searchParams.set('num', '9');
       url.searchParams.set('start', String(startIndex));
       const r = await fetch(url.toString());
       const data = await r.json();
       renderItems(data.items || []);
       hasNext = !!(data.queries && data.queries.nextPage);
-      if(hasNext){ startIndex += 10; }
+      if(hasNext){ startIndex += 9; }
       statusEl.textContent = hasNext ? 'スクロールでさらに表示' : '以上です';
     }catch(e){
       statusEl.textContent = '読み込みに失敗しました';
@@ -143,7 +146,6 @@
     hasNext = true;
     fetchNext();
   }
-
   kwInput.addEventListener('keydown', e=>{
     if(e.key === 'Enter'){
       e.preventDefault();
@@ -164,7 +166,6 @@
     const docH = document.documentElement.scrollHeight;
     if(docH - scrollPos < 600){ fetchNext(); }
   });
-
   renderChips();
 })();
 </script>
