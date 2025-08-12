@@ -1,368 +1,172 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IG-like AND Search</title>
-  <style>
-    :root { --gap: 2px; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#111; background:#fff; }
-
-    /* Top bar */
-    header { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #eee; }
-    .bar { display:flex; gap:8px; align-items:center; padding:10px; }
-    .brand { font-weight:700; font-size:16px; }
-    .chip-input { display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%; }
-    .chip-input input { flex:1; min-width:160px; padding:10px 12px; border:1px solid #ddd; border-radius:10px; }
-    .chips { display:flex; flex-wrap:wrap; gap:8px; }
-    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f3f3f3; border:1px solid #e7e7e7; border-radius:999px; font-size:13px; }
-    .chip button { border:none; background:transparent; cursor:pointer; padding:0 2px; font-size:16px; line-height:1; }
-    .button { padding:10px 14px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer; }
-
-    /* IG-like 3-column grid */
-    main { padding: var(--gap); }
-    .grid { display:grid; gap: var(--gap); grid-template-columns: repeat(3, 1fr); }
-    .card { position:relative; aspect-ratio:1/1; overflow:hidden; background:#f6f6f6; }
-    .card a { display:block; width:100%; height:100%; }
-    .card img { width:100%; height:100%; object-fit:cover; display:block; }
-    .badge { position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 6px; border-radius:6px; }
-
-    /* Minimal status */
-    .status { padding:8px 10px; color:#666; font-size:12px; border-top:1px solid #f4f4f4; }
-    .warn { background:#fff7f7; border:1px solid #ffd7d7; color:#a40000; padding:8px 10px; border-radius:8px; margin:8px 10px; font-size:12px; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IG-like AND Search</title>
+<style>
+  :root { --gap: 2px; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#111; background:#fff; }
+  header { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #eee; }
+  .bar { display:flex; gap:8px; align-items:center; padding:10px; }
+  .brand { font-weight:700; font-size:16px; }
+  .chip-input { display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%; }
+  .chip-input input { flex:1; min-width:160px; padding:10px 12px; border:1px solid #ddd; border-radius:10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f3f3f3; border:1px solid #e7e7e7; border-radius:999px; font-size:13px; }
+  .chip button { border:none; background:transparent; cursor:pointer; padding:0 2px; font-size:16px; line-height:1; }
+  .button { padding:10px 14px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer; }
+  main { padding: var(--gap); }
+  .grid { display:grid; gap: var(--gap); grid-template-columns: repeat(3, 1fr); }
+  .card { position:relative; aspect-ratio:1/1; overflow:hidden; background:#f6f6f6; }
+  .card a { display:block; width:100%; height:100%; }
+  .card img { width:100%; height:100%; object-fit:cover; display:block; }
+  .badge { position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 6px; border-radius:6px; }
+  .status { padding:8px 10px; color:#666; font-size:12px; border-top:1px solid #f4f4f4; }
+  .warn { background:#fff7f7; border:1px solid #ffd7d7; color:#a40000; padding:8px 10px; border-radius:8px; margin:8px 10px; font-size:12px; }
+</style>
 </head>
 <body>
-  <header>
-    <div class="bar">
-      <div class="brand">検索</div>
-      <div class="chip-input">
-        <div id="chips" class="chips"></div>
-        <input id="kw" placeholder="キーワードを入力して Enter で追加（AND）" />
-      </div>
-      <button id="searchBtn" class="button">検索</button>
-      <button id="clearBtn" class="button">リセット</button>
+<header>
+  <div class="bar">
+    <div class="brand">検索</div>
+    <div class="chip-input">
+      <div id="chips" class="chips"></div>
+      <input id="kw" placeholder="キーワードを入力して Enter で追加（AND）" />
     </div>
-  </header>
+    <button id="searchBtn" class="button">検索</button>
+    <button id="clearBtn" class="button">リセット</button>
+  </div>
+</header>
 
-  <div id="keyWarn" class="warn" style="display:none;">APIキーを設定してください。</div>
+<div id="keyWarn" class="warn" style="display:none;">APIキーを設定してください。</div>
 
-  <main>
-    <div id="grid" class="grid"></div>
-    <div id="status" class="status"></div>
-  </main>
+<main>
+  <div id="grid" class="grid"></div>
+  <div id="status" class="status"></div>
+</main>
 
-  <script type="module">(() => {
-    // ====== Settings ======
-    const GOOGLE_API_KEY = 'API_KEY_HERE'; // ← 必ずHTTPリファラ制限を設定
-    const GOOGLE_CX = '3419ec5b148fd47ea';
+<script type="module">
+(() => {
+  const GOOGLE_API_KEY = 'AIzaSyA2Rv2Xe8-IitstdKxwE4xm6G13IHC38ys'; // あなたのAPIキー
+  const GOOGLE_CX = '3419ec5b148fd47ea'; // PSE ID
 
-    // ====== State ======
-    const chipsEl = document.getElementById('chips');
-    const kwInput = document.getElementById('kw');
-    const gridEl = document.getElementById('grid');
-    const searchBtn = document.getElementById('searchBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const statusEl = document.getElementById('status');
-    const keyWarn = document.getElementById('keyWarn');
+  const chipsEl = document.getElementById('chips');
+  const kwInput = document.getElementById('kw');
+  const gridEl = document.getElementById('grid');
+  const searchBtn = document.getElementById('searchBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const statusEl = document.getElementById('status');
+  const keyWarn = document.getElementById('keyWarn');
 
-    let keywords = [];
-    let fetching = false;
-    let startIndex = 1; // 1,11,21 ...
-    let hasNext = true;
-    const seenLinks = new Set(); // 重複排除
+  let keywords = [];
+  let fetching = false;
+  let startIndex = 1;
+  let hasNext = true;
+  const seenLinks = new Set();
 
-    // ====== Helpers ======
-    function escapeHtml(s){
-      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
-    }
-    function renderChips(){
-      chipsEl.innerHTML = '';
-      keywords.forEach((w,i)=>{
-        const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.innerHTML = `<span>${escapeHtml(w)}</span>`;
-        const x = document.createElement('button');
-        x.setAttribute('aria-label','remove');
-        x.textContent = '×';
-        x.addEventListener('click', ()=>{ keywords.splice(i,1); renderChips(); });
-        chip.appendChild(x);
-        chipsEl.appendChild(chip);
-      });
-    }
-    function buildQuery(){
-      if(!keywords.length) return '';
-      const andExpr = keywords.map(w => `"${w}"`).join(' AND ');
-      return `site:instagram.com (${andExpr})`;
-    }
-    function pickThumb(item){
-      return item?.image?.thumbnailLink || item?.link || null;
-    }
-    function renderItems(items){
-      for(const it of (items||[])){
-        const thumb = pickThumb(it);
-        const link = it?.image?.contextLink || it?.link;
-        if(!thumb || !link) continue;
-        if(seenLinks.has(link)) continue;
-        seenLinks.add(link);
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <a href="${link}" target="_blank" rel="noopener">
-            <img loading="lazy" src="${thumb}" alt="" />
-            <span class="badge">画像</span>
-          </a>`;
-        gridEl.appendChild(card);
-      }
-    }
-
-    async function fetchNext(){
-      if(fetching || !hasNext) return;
-      const q = buildQuery();
-      if(!q){ statusEl.textContent = 'キーワードを追加してください'; return; }
-      if(!GOOGLE_API_KEY || GOOGLE_API_KEY === 'API_KEY_HERE'){ keyWarn.style.display=''; return; } else { keyWarn.style.display='none'; }
-
-      fetching = true;
-      statusEl.textContent = '読み込み中…';
-      try{
-        const url = new URL('https://www.googleapis.com/customsearch/v1');
-        url.searchParams.set('key', GOOGLE_API_KEY);
-        url.searchParams.set('cx', GOOGLE_CX);
-        url.searchParams.set('q', q);
-        url.searchParams.set('searchType', 'image');
-        url.searchParams.set('num', '10');
-        url.searchParams.set('start', String(startIndex));
-        const r = await fetch(url.toString());
-        const data = await r.json();
-        renderItems(data.items || []);
-        hasNext = !!(data.queries && data.queries.nextPage);
-        if(hasNext){ startIndex += 10; }
-        statusEl.textContent = hasNext ? 'スクロールでさらに表示' : '以上です';
-      }catch(e){
-        statusEl.textContent = '読み込みに失敗しました';
-      }finally{
-        fetching = false;
-      }
-    }
-
-    function resetAndSearch(){
-      gridEl.innerHTML = '';
-      seenLinks.clear();
-      startIndex = 1;
-      hasNext = true;
-      fetchNext();
-    }
-
-    // ====== Events ======
-    kwInput.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter'){
-        e.preventDefault();
-        const v = kwInput.value.trim();
-        if(!v) return;
-        keywords.push(v);
-        kwInput.value = '';
-        renderChips();
-      }
+  function escapeHtml(s) {
+    return s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function renderChips(){
+    chipsEl.innerHTML = '';
+    keywords.forEach((w,i)=>{
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = `<span>${escapeHtml(w)}</span>`;
+      const x = document.createElement('button');
+      x.textContent = '×';
+      x.addEventListener('click', ()=>{ keywords.splice(i,1); renderChips(); });
+      chip.appendChild(x);
+      chipsEl.appendChild(chip);
     });
-    searchBtn.addEventListener('click', resetAndSearch);
-    clearBtn.addEventListener('click', ()=>{ keywords=[]; renderChips(); gridEl.innerHTML=''; statusEl.textContent=''; });
-
-    // Infinite scroll
-    window.addEventListener('scroll', ()=>{
-      const scrollPos = window.scrollY + window.innerHeight;
-      const docH = document.documentElement.scrollHeight;
-      if(docH - scrollPos < 600){ // 末尾600px手前で次を読む
-        fetchNext();
-      }
-    });
-
-    // 初期（空）
-    renderChips();
-  })();</script>
-</body>
-</html>
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>IG-like AND Search</title>
-  <style>
-    :root { --gap: 2px; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#111; background:#fff; }
-
-    /* Top bar */
-    header { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #eee; }
-    .bar { display:flex; gap:8px; align-items:center; padding:10px; }
-    .brand { font-weight:700; font-size:16px; }
-    .chip-input { display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%; }
-    .chip-input input { flex:1; min-width:160px; padding:10px 12px; border:1px solid #ddd; border-radius:10px; }
-    .chips { display:flex; flex-wrap:wrap; gap:8px; }
-    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f3f3f3; border:1px solid #e7e7e7; border-radius:999px; font-size:13px; }
-    .chip button { border:none; background:transparent; cursor:pointer; padding:0 2px; font-size:16px; line-height:1; }
-    .button { padding:10px 14px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer; }
-
-    /* IG-like 3-column grid */
-    main { padding: var(--gap); }
-    .grid { display:grid; gap: var(--gap); grid-template-columns: repeat(3, 1fr); }
-    .card { position:relative; aspect-ratio:1/1; overflow:hidden; background:#f6f6f6; }
-    .card a { display:block; width:100%; height:100%; }
-    .card img { width:100%; height:100%; object-fit:cover; display:block; }
-    .badge { position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 6px; border-radius:6px; }
-
-    /* Minimal status */
-    .status { padding:8px 10px; color:#666; font-size:12px; border-top:1px solid #f4f4f4; }
-    .warn { background:#fff7f7; border:1px solid #ffd7d7; color:#a40000; padding:8px 10px; border-radius:8px; margin:8px 10px; font-size:12px; }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="bar">
-      <div class="brand">検索</div>
-      <div class="chip-input">
-        <div id="chips" class="chips"></div>
-        <input id="kw" placeholder="キーワードを入力して Enter で追加（AND）" />
-      </div>
-      <button id="searchBtn" class="button">検索</button>
-      <button id="clearBtn" class="button">リセット</button>
-    </div>
-  </header>
-
-  <div id="keyWarn" class="warn" style="display:none;">APIキーを設定してください。</div>
-
-  <main>
-    <div id="grid" class="grid"></div>
-    <div id="status" class="status"></div>
-  </main>
-
-  <script>
-    // ====== Settings ======
-    const GOOGLE_API_KEY = 'AIzaSyA2Rv2Xe8-IitstdKxwE4xm6G13IHC38ys'; // ← 必ずHTTPリファラ制限を設定
-    const GOOGLE_CX = '3419ec5b148fd47ea';
-
-    // ====== State ======
-    const chipsEl = document.getElementById('chips');
-    const kwInput = document.getElementById('kw');
-    const gridEl = document.getElementById('grid');
-    const searchBtn = document.getElementById('searchBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const statusEl = document.getElementById('status');
-    const keyWarn = document.getElementById('keyWarn');
-
-    let keywords = [];
-    let fetching = false;
-    let startIndex = 1; // 1,11,21 ...
-    let hasNext = true;
-    const seenLinks = new Set(); // 重複排除
-
-    // ====== Helpers ======
-    function escapeHtml(s){
-      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+  }
+  function buildQuery(){
+    if(!keywords.length) return '';
+    const andExpr = keywords.map(w => `"${w}"`).join(' AND ');
+    return `site:instagram.com (${andExpr})`;
+  }
+  function pickImage(item){
+    return item?.link || item?.image?.thumbnailLink || null;
+  }
+  function renderItems(items){
+    for(const it of (items||[])){
+      const imgUrl = pickImage(it);
+      const pageUrl = it?.image?.contextLink || it?.link;
+      if(!imgUrl || !pageUrl) continue;
+      if(seenLinks.has(pageUrl)) continue;
+      seenLinks.add(pageUrl);
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <a href="${pageUrl}" target="_blank" rel="noopener">
+          <img loading="lazy" src="${imgUrl}" alt="" />
+          <span class="badge">画像</span>
+        </a>`;
+      gridEl.appendChild(card);
     }
-    function renderChips(){
-      chipsEl.innerHTML = '';
-      keywords.forEach((w,i)=>{
-        const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.innerHTML = `<span>${escapeHtml(w)}</span>`;
-        const x = document.createElement('button');
-        x.setAttribute('aria-label','remove');
-        x.textContent = '×';
-        x.addEventListener('click', ()=>{ keywords.splice(i,1); renderChips(); });
-        chip.appendChild(x);
-        chipsEl.appendChild(chip);
-      });
-    }
-    function buildQuery(){
-      if(!keywords.length) return '';
-      const andExpr = keywords.map(w => `"${w}"`).join(' AND ');
-      return `site:instagram.com (${andExpr})`;
-    }
-    function pickThumb(item){
-      return item?.image?.thumbnailLink || item?.link || null;
-    }
-    function renderItems(items){
-      for(const it of (items||[])){
-        const thumb = pickThumb(it);
-        const link = it?.image?.contextLink || it?.link;
-        if(!thumb || !link) continue;
-        if(seenLinks.has(link)) continue;
-        seenLinks.add(link);
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <a href="${link}" target="_blank" rel="noopener">
-            <img loading="lazy" src="${thumb}" alt="" />
-            <span class="badge">画像</span>
-          </a>`;
-        gridEl.appendChild(card);
-      }
-    }
+  }
+  async function fetchNext(){
+    if(fetching || !hasNext) return;
+    const q = buildQuery();
+    if(!q){ statusEl.textContent = 'キーワードを追加してください'; return; }
+    if(!GOOGLE_API_KEY || GOOGLE_API_KEY === 'API_KEY_HERE'){ keyWarn.style.display=''; return; } else { keyWarn.style.display='none'; }
 
-    async function fetchNext(){
-      if(fetching || !hasNext) return;
-      const q = buildQuery();
-      if(!q){ statusEl.textContent = 'キーワードを追加してください'; return; }
-      if(!GOOGLE_API_KEY || GOOGLE_API_KEY === 'API_KEY_HERE'){ keyWarn.style.display=''; return; } else { keyWarn.style.display='none'; }
-
-      fetching = true;
-      statusEl.textContent = '読み込み中…';
-      try{
-        const url = new URL('https://www.googleapis.com/customsearch/v1');
-        url.searchParams.set('key', GOOGLE_API_KEY);
-        url.searchParams.set('cx', GOOGLE_CX);
-        url.searchParams.set('q', q);
-        url.searchParams.set('searchType', 'image');
-        url.searchParams.set('num', '10');
-        url.searchParams.set('start', String(startIndex));
-        const r = await fetch(url.toString());
-        const data = await r.json();
-        renderItems(data.items || []);
-        hasNext = !!(data.queries && data.queries.nextPage);
-        if(hasNext){ startIndex += 10; }
-        statusEl.textContent = hasNext ? 'スクロールでさらに表示' : '以上です';
-      }catch(e){
-        statusEl.textContent = '読み込みに失敗しました';
-      }finally{
-        fetching = false;
-      }
+    fetching = true;
+    statusEl.textContent = '読み込み中…';
+    try{
+      const url = new URL('https://www.googleapis.com/customsearch/v1');
+      url.searchParams.set('key', GOOGLE_API_KEY);
+      url.searchParams.set('cx', GOOGLE_CX);
+      url.searchParams.set('q', q);
+      url.searchParams.set('searchType', 'image');
+      url.searchParams.set('imgSize', 'large'); // 高画質指定
+      url.searchParams.set('num', '10');
+      url.searchParams.set('start', String(startIndex));
+      const r = await fetch(url.toString());
+      const data = await r.json();
+      renderItems(data.items || []);
+      hasNext = !!(data.queries && data.queries.nextPage);
+      if(hasNext){ startIndex += 10; }
+      statusEl.textContent = hasNext ? 'スクロールでさらに表示' : '以上です';
+    }catch(e){
+      statusEl.textContent = '読み込みに失敗しました';
+    }finally{
+      fetching = false;
     }
+  }
+  function resetAndSearch(){
+    gridEl.innerHTML = '';
+    seenLinks.clear();
+    startIndex = 1;
+    hasNext = true;
+    fetchNext();
+  }
 
-    function resetAndSearch(){
-      gridEl.innerHTML = '';
-      seenLinks.clear();
-      startIndex = 1;
-      hasNext = true;
-      fetchNext();
+  kwInput.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      const v = kwInput.value.trim();
+      if(!v) return;
+      keywords.push(v);
+      kwInput.value = '';
+      renderChips();
     }
+  });
+  searchBtn.addEventListener('click', resetAndSearch);
+  clearBtn.addEventListener('click', ()=>{
+    keywords=[]; renderChips();
+    gridEl.innerHTML=''; statusEl.textContent='';
+  });
+  window.addEventListener('scroll', ()=>{
+    const scrollPos = window.scrollY + window.innerHeight;
+    const docH = document.documentElement.scrollHeight;
+    if(docH - scrollPos < 600){ fetchNext(); }
+  });
 
-    // ====== Events ======
-    kwInput.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter'){
-        e.preventDefault();
-        const v = kwInput.value.trim();
-        if(!v) return;
-        keywords.push(v);
-        kwInput.value = '';
-        renderChips();
-      }
-    });
-    searchBtn.addEventListener('click', resetAndSearch);
-    clearBtn.addEventListener('click', ()=>{ keywords=[]; renderChips(); gridEl.innerHTML=''; statusEl.textContent=''; });
-
-    // Infinite scroll
-    window.addEventListener('scroll', ()=>{
-      const scrollPos = window.scrollY + window.innerHeight;
-      const docH = document.documentElement.scrollHeight;
-      if(docH - scrollPos < 600){ // 末尾600px手前で次を読む
-        fetchNext();
-      }
-    });
-
-    // 初期（空）
-    renderChips();
-  </script>
+  renderChips();
+})();
+</script>
 </body>
 </html>
