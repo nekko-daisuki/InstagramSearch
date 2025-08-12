@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>IG-like AND Search (fast)</title>
+<title>IG-like AND Search (balanced)</title>
 <style>
-  :root { --gap: 2px; }
+  :root { --gap: 2px; --cell: 280px; } /* セル幅を固定して粗さを抑える */
   * { box-sizing: border-box; }
   body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#111; background:#fff; }
   header { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #eee; }
@@ -17,14 +17,26 @@
   .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f3f3f3; border:1px solid #e7e7e7; border-radius:999px; font-size:13px; }
   .chip button { border:none; background:transparent; cursor:pointer; padding:0 2px; font-size:16px; line-height:1; }
   .button { padding:10px 14px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer; }
-  main { padding: var(--gap); }
-  .grid { display:grid; gap: var(--gap); grid-template-columns: repeat(3, 1fr); }
-  .card { position:relative; aspect-ratio:1/1; overflow:hidden; background:#eee; }
+  main { padding: 6px; }
+
+  /* 3カラム固定・中央寄せ */
+  .grid {
+    display:grid;
+    gap: var(--gap);
+    grid-template-columns: repeat(3, var(--cell));
+    justify-content: center;
+  }
+  .card { position:relative; width:var(--cell); aspect-ratio:1/1; overflow:hidden; background:#eee; }
   .card a { display:block; width:100%; height:100%; }
-  .card img { width:100%; height:100%; object-fit:cover; display:block; }
+  .card img { width:100%; height:100%; object-fit:cover; display:block; transition: filter .2s ease; }
+  .card.upgraded img { filter: none; }
   .badge { position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 6px; border-radius:6px; }
-  .status { padding:8px 10px; color:#666; font-size:12px; border-top:1px solid #f4f4f4; }
+  .status { padding:8px 10px; color:#666; font-size:12px; border-top:1px solid #f4f4f4; text-align:center; }
   .warn { background:#fff7f7; border:1px solid #ffd7d7; color:#a40000; padding:8px 10px; border-radius:8px; margin:8px 10px; font-size:12px; }
+
+  /* スモール端末はセル幅を少し下げる */
+  @media (max-width: 920px) { :root { --cell: 240px; } }
+  @media (max-width: 760px) { :root { --cell: 200px; } }
 </style>
 <link rel="preconnect" href="https://encrypted-tbn0.gstatic.com">
 <link rel="dns-prefetch" href="https://encrypted-tbn0.gstatic.com">
@@ -89,28 +101,70 @@
     const andExpr = keywords.map(w => `"${w}"`).join(' AND ');
     return `site:instagram.com (${andExpr})`;
   }
-  function pickThumb(item){
-    return item?.image?.thumbnailLink || item?.link || null;
-  }
+
+  // まずは必ず軽いサムネ（thumbnailLink）を表示
+  function thumbUrl(item){ return item?.image?.thumbnailLink || null; }
+  // 後から“読めたものだけ”フル画像へ差し替え
+  function fullUrl(item){ return item?.link || null; }
+
   function renderItems(items){
     const frag = document.createDocumentFragment();
     for(const it of (items||[])){
-      const thumb = pickThumb(it);
+      const t = thumbUrl(it);
       const pageUrl = it?.image?.contextLink || it?.link;
-      if(!thumb || !pageUrl) continue;
+      const f = fullUrl(it);
+      if(!t || !pageUrl) continue;
       if(seenLinks.has(pageUrl)) continue;
       seenLinks.add(pageUrl);
+
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
         <a href="${pageUrl}" target="_blank" rel="noopener">
-          <img loading="lazy" decoding="async" fetchpriority="low" src="${thumb}" alt="" />
+          <img loading="lazy" decoding="async" fetchpriority="low" src="${t}" alt="" />
           <span class="badge">画像</span>
         </a>`;
+      // フル画像差し替え用に dataset に保存
+      if (f) card.dataset.full = f;
       frag.appendChild(card);
     }
     gridEl.appendChild(frag);
+    observeForUpgrade(); // 追加分に対しても監視
   }
+
+  // 画面に入ったカードだけ、フル画像を試し読み→成功したら差し替え
+  const io = new IntersectionObserver((entries)=>{
+    for(const e of entries){
+      if(!e.isIntersecting) continue;
+      const card = e.target;
+      io.unobserve(card);
+      const full = card.dataset.full;
+      if(!full) return;
+
+      // 1.5秒以内に load できたら差し替え（失敗ならサムネ維持）
+      const img = new Image();
+      let done = false;
+      const timeout = setTimeout(()=>{ if(!done){ done = true; } }, 1500);
+      img.onload = () => {
+        if(done) return;
+        done = true; clearTimeout(timeout);
+        const tag = card.querySelector('img');
+        tag.src = full;
+        card.classList.add('upgraded');
+      };
+      img.onerror = () => { done = true; clearTimeout(timeout); };
+      img.decoding = 'async';
+      img.src = full;
+    }
+  }, { rootMargin: '200px 0px' });
+
+  function observeForUpgrade(){
+    document.querySelectorAll('.card:not(.observed)').forEach(card=>{
+      card.classList.add('observed');
+      io.observe(card);
+    });
+  }
+
   async function fetchNext(){
     if(fetching || !hasNext) return;
     const q = buildQuery();
@@ -124,8 +178,8 @@
       url.searchParams.set('cx', GOOGLE_CX);
       url.searchParams.set('q', q);
       url.searchParams.set('searchType', 'image');
-      url.searchParams.set('imgSize', 'medium');
-      url.searchParams.set('num', '9');
+      url.searchParams.set('imgSize', 'medium');   // 速度優先／大きすぎ回避
+      url.searchParams.set('num', '9');            // 3×3で軽い初期描画
       url.searchParams.set('start', String(startIndex));
       const r = await fetch(url.toString());
       const data = await r.json();
@@ -139,6 +193,7 @@
       fetching = false;
     }
   }
+
   function resetAndSearch(){
     gridEl.innerHTML = '';
     seenLinks.clear();
@@ -146,6 +201,7 @@
     hasNext = true;
     fetchNext();
   }
+
   kwInput.addEventListener('keydown', e=>{
     if(e.key === 'Enter'){
       e.preventDefault();
@@ -161,11 +217,14 @@
     keywords=[]; renderChips();
     gridEl.innerHTML=''; statusEl.textContent='';
   });
+
+  // 無限スクロール
   window.addEventListener('scroll', ()=>{
     const scrollPos = window.scrollY + window.innerHeight;
     const docH = document.documentElement.scrollHeight;
     if(docH - scrollPos < 600){ fetchNext(); }
   });
+
   renderChips();
 })();
 </script>
