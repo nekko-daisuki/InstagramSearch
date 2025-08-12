@@ -49,16 +49,16 @@
 
 <script type="module">
 (() => {
-  const GOOGLE_API_KEY = 'AIzaSyA2Rv2Xe8-IitstdKxwE4xm6G13IHC38ys'; // あなたのAPIキー
-  const GOOGLE_CX = '3419ec5b148fd47ea'; // PSE ID
+  const GOOGLE_API_KEY = 'API_KEY_HERE';          // ← あなたのAPIキー
+  const GOOGLE_CX = '3419ec5b148fd47ea';          // あなたのPSE ID
 
-  const chipsEl = document.getElementById('chips');
-  const kwInput = document.getElementById('kw');
-  const gridEl = document.getElementById('grid');
-  const searchBtn = document.getElementById('searchBtn');
+  const chipsEl  = document.getElementById('chips');
+  const kwInput  = document.getElementById('kw');
+  const gridEl   = document.getElementById('grid');
+  const searchBtn= document.getElementById('searchBtn');
   const clearBtn = document.getElementById('clearBtn');
   const statusEl = document.getElementById('status');
-  const keyWarn = document.getElementById('keyWarn');
+  const keyWarn  = document.getElementById('keyWarn');
 
   let keywords = [];
   let fetching = false;
@@ -66,7 +66,7 @@
   let hasNext = true;
   const seenLinks = new Set();
 
-  function escapeHtml(s) {
+  function escapeHtml(s){
     return s.replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   function renderChips(){
@@ -88,7 +88,7 @@
     return `site:instagram.com (${andExpr})`;
   }
   function pickImage(item){
-    return item?.link || item?.image?.thumbnailLink || null;
+    return item?.link || item?.image?.thumbnailLink || null; // フル画像優先
   }
   function renderItems(items){
     for(const it of (items||[])){
@@ -121,7 +121,7 @@
       url.searchParams.set('cx', GOOGLE_CX);
       url.searchParams.set('q', q);
       url.searchParams.set('searchType', 'image');
-      url.searchParams.set('imgSize', 'large'); // 高画質指定
+      url.searchParams.set('imgSize', 'large');   // ← 方法2（高画質指定）
       url.searchParams.set('num', '10');
       url.searchParams.set('start', String(startIndex));
       const r = await fetch(url.toString());
