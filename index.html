@@ -3,161 +3,109 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Instagram風 AND検索（画像グリッド）</title>
+  <title>IG-like AND Search</title>
   <style>
-    :root { --gap: 10px; }
+    :root { --gap: 2px; }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui,-apple-system, "Segoe UI", Roboto, sans-serif; color:#111; background:#fff; }
-    header {
-      position: sticky; top:0; z-index:10; background:#fff;
-      border-bottom:1px solid #eee; padding: 14px 12px;
-      display:flex; flex-wrap:wrap; align-items:center; gap:12px;
-    }
+    body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#111; background:#fff; }
+
+    /* Top bar */
+    header { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #eee; }
+    .bar { display:flex; gap:8px; align-items:center; padding:10px; }
     .brand { font-weight:700; font-size:16px; }
-
     .chip-input { display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%; }
-    .chip-input input {
-      flex:1; min-width:180px; padding:10px 12px; border:1px solid #ddd; border-radius:10px;
-    }
+    .chip-input input { flex:1; min-width:160px; padding:10px 12px; border:1px solid #ddd; border-radius:10px; }
     .chips { display:flex; flex-wrap:wrap; gap:8px; }
-    .chip {
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px; background:#f3f3f3; border:1px solid #e7e7e7; border-radius:999px; font-size:13px;
-    }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f3f3f3; border:1px solid #e7e7e7; border-radius:999px; font-size:13px; }
     .chip button { border:none; background:transparent; cursor:pointer; padding:0 2px; font-size:16px; line-height:1; }
+    .button { padding:10px 14px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer; }
 
-    .actions { display:flex; gap:8px; margin-left:auto; }
-    .button {
-      padding:10px 14px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer;
-    }
-
+    /* IG-like 3-column grid */
     main { padding: var(--gap); }
-
-    /* グリッド（IG風 正方形カード） */
-    .grid { display:grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-    .card { position:relative; aspect-ratio: 1/1; overflow:hidden; border-radius:12px; background:#f6f6f6; }
+    .grid { display:grid; gap: var(--gap); grid-template-columns: repeat(3, 1fr); }
+    .card { position:relative; aspect-ratio:1/1; overflow:hidden; background:#f6f6f6; }
     .card a { display:block; width:100%; height:100%; }
-    .card img { width:100%; height:100%; object-fit: cover; display:block; transition: transform .25s ease; }
-    .card:hover img { transform: scale(1.03); }
-    .badge { position:absolute; left:8px; bottom:8px; background: rgba(0,0,0,.55); color:#fff; font-size:12px; padding:2px 6px; border-radius:6px; }
+    .card img { width:100%; height:100%; object-fit:cover; display:block; }
+    .badge { position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 6px; border-radius:6px; }
 
-    .status { display:flex; justify-content:space-between; align-items:center; margin:10px 2px 14px; color:#666; font-size:13px; }
-    .pager { display:flex; gap:8px; }
-    .pager button { padding:8px 12px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer; }
-
-    .help { padding: 10px 12px 0; font-size:13px; color:#666; }
-    code { background:#f6f6f6; padding:2px 6px; border-radius:6px; }
-
-    footer { border-top:1px solid #f0f0f0; padding: 14px 12px; color:#555; font-size:13px; }
-
-    .warn { background:#fff7f7; border:1px solid #ffd7d7; color:#a40000; padding:10px 12px; border-radius:10px; }
+    /* Minimal status */
+    .status { padding:8px 10px; color:#666; font-size:12px; border-top:1px solid #f4f4f4; }
+    .warn { background:#fff7f7; border:1px solid #ffd7d7; color:#a40000; padding:8px 10px; border-radius:8px; margin:8px 10px; font-size:12px; }
   </style>
 </head>
 <body>
   <header>
-    <div class="brand">Instagram風 AND検索</div>
-
-    <div class="chip-input">
-      <div id="chips" class="chips"></div>
-      <input id="kw" placeholder="キーワードを入力して Enter で追加（AND検索）" />
-    </div>
-
-    <div class="actions">
+    <div class="bar">
+      <div class="brand">検索</div>
+      <div class="chip-input">
+        <div id="chips" class="chips"></div>
+        <input id="kw" placeholder="キーワードを入力して Enter で追加（AND）" />
+      </div>
       <button id="searchBtn" class="button">検索</button>
       <button id="clearBtn" class="button">リセット</button>
     </div>
   </header>
 
-  <div class="help">
-    <div>追加したすべてのキーワードを <code>AND</code> で検索します（例: <code>立川</code> と <code>カフェ</code> を追加 → <code>"立川" AND "カフェ"</code>）。検索対象は常に <code>site:instagram.com</code> に限定されます。</div>
-    <div class="warn" id="keyWarn" style="display:none; margin-top:10px;">⚠️ APIキーを設定してください（下部の説明を参照）。</div>
-  </div>
+  <div id="keyWarn" class="warn" style="display:none;">APIキーを設定してください。</div>
 
   <main>
-    <div class="status">
-      <div id="queryView">&nbsp;</div>
-      <div class="pager">
-        <button id="prev" disabled>前へ</button>
-        <span id="page">1</span>
-        <button id="next" disabled>次へ</button>
-      </div>
-    </div>
-
     <div id="grid" class="grid"></div>
+    <div id="status" class="status"></div>
   </main>
 
-  <footer>
-    <p><strong>セットアップ手順（GitHub Pagesのみで可）</strong></p>
-    <ol>
-      <li>Google Cloud で API キーを作成し、<b>API 制限</b>で「Custom Search JSON API」のみ許可、<b>アプリケーション制限</b>は「HTTP リファラ」を選び、あなたの GitHub Pages ドメイン（例 <code>https://username.github.io/*</code>）に制限してください。</li>
-      <li><b>Programmable Search Engine</b> で検索エンジンを作成し、対象サイトを <code>instagram.com</code> に限定。<b>cx</b> は <code>3419ec5b148fd47ea</code> を使用します（あなたのPSE）。</li>
-      <li>このHTMLの <code>API_KEY_HERE</code> をあなたの API キーに置き換えて保存・公開してください。</li>
-    </ol>
-    <p>注意：完全な Instagram 公式UIではありませんが、画像グリッドで近い見た目になります。結果は Google 検索に基づくため、網羅性・鮮度は Instagram 公式APIに比べ限定されます。</p>
-  </footer>
+  <script type="module">(() => {
+    // ====== Settings ======
+    const GOOGLE_API_KEY = 'API_KEY_HERE'; // ← 必ずHTTPリファラ制限を設定
+    const GOOGLE_CX = '3419ec5b148fd47ea';
 
-  <script>
-    // ====== 設定 ======
-    const GOOGLE_API_KEY = 'AIzaSyA2Rv2Xe8-IitstdKxwE4xm6G13IHC38ys'; // ← あなたのブラウザキー（HTTPリファラ制限必須）
-    const GOOGLE_CX = '3419ec5b148fd47ea'; // あなたのPSE ID
-
-    // ====== UI状態 ======
+    // ====== State ======
     const chipsEl = document.getElementById('chips');
     const kwInput = document.getElementById('kw');
     const gridEl = document.getElementById('grid');
     const searchBtn = document.getElementById('searchBtn');
     const clearBtn = document.getElementById('clearBtn');
-    const prevBtn = document.getElementById('prev');
-    const nextBtn = document.getElementById('next');
-    const pageEl = document.getElementById('page');
-    const queryView = document.getElementById('queryView');
+    const statusEl = document.getElementById('status');
     const keyWarn = document.getElementById('keyWarn');
 
-    let keywords = [];     // AND 条件の語群
-    let startIndex = 1;    // Google API の開始インデックス（1, 11, 21, ...）
+    let keywords = [];
+    let fetching = false;
+    let startIndex = 1; // 1,11,21 ...
+    let hasNext = true;
+    const seenLinks = new Set(); // 重複排除
 
-    // ====== ユーティリティ ======
+    // ====== Helpers ======
+    function escapeHtml(s){
+      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+    }
     function renderChips(){
       chipsEl.innerHTML = '';
-      for(const [i, word] of keywords.entries()){
+      keywords.forEach((w,i)=>{
         const chip = document.createElement('span');
         chip.className = 'chip';
-        chip.innerHTML = `<span>${escapeHtml(word)}</span>`;
+        chip.innerHTML = `<span>${escapeHtml(w)}</span>`;
         const x = document.createElement('button');
-        x.setAttribute('aria-label', 'remove');
+        x.setAttribute('aria-label','remove');
         x.textContent = '×';
         x.addEventListener('click', ()=>{ keywords.splice(i,1); renderChips(); });
         chip.appendChild(x);
         chipsEl.appendChild(chip);
-      }
+      });
     }
-
-    function escapeHtml(s){
-      return s.replace(/[&<>"];/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',';':'&#59;'}[c]||c));
-    }
-
-    function buildGoogleQuery(){
-      if(keywords.length === 0) return '';
+    function buildQuery(){
+      if(!keywords.length) return '';
       const andExpr = keywords.map(w => `"${w}"`).join(' AND ');
       return `site:instagram.com (${andExpr})`;
     }
-
-    function updateQueryView(){
-      const q = buildGoogleQuery();
-      queryView.textContent = q || '';
-    }
-
     function pickThumb(item){
-      // Image Search の場合: thumbnailLink が確実
       return item?.image?.thumbnailLink || item?.link || null;
     }
-
-    function renderResults(items){
-      gridEl.innerHTML = '';
+    function renderItems(items){
       for(const it of (items||[])){
         const thumb = pickThumb(it);
-        const link = it?.image?.contextLink || it?.link; // Instagramのページへ飛ばす
+        const link = it?.image?.contextLink || it?.link;
         if(!thumb || !link) continue;
+        if(seenLinks.has(link)) continue;
+        seenLinks.add(link);
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
@@ -169,42 +117,44 @@
       }
     }
 
-    async function runSearch(start=1){
-      if(!GOOGLE_API_KEY || GOOGLE_API_KEY === 'API_KEY_HERE'){
-        keyWarn.style.display = '';
-        return;
-      } else {
-        keyWarn.style.display = 'none';
-      }
+    async function fetchNext(){
+      if(fetching || !hasNext) return;
+      const q = buildQuery();
+      if(!q){ statusEl.textContent = 'キーワードを追加してください'; return; }
+      if(!GOOGLE_API_KEY || GOOGLE_API_KEY === 'API_KEY_HERE'){ keyWarn.style.display=''; return; } else { keyWarn.style.display='none'; }
 
-      const q = buildGoogleQuery();
-      if(!q){ gridEl.innerHTML = '<div class="warn">キーワードを追加してください。</div>'; return; }
-
-      const url = new URL('https://www.googleapis.com/customsearch/v1');
-      url.searchParams.set('key', GOOGLE_API_KEY);
-      url.searchParams.set('cx', GOOGLE_CX);
-      url.searchParams.set('q', q);
-      url.searchParams.set('searchType', 'image'); // 画像検索=グリッドに最適
-      url.searchParams.set('num', '10');
-      url.searchParams.set('start', String(start));
-
-      gridEl.innerHTML = '<div style="padding:12px;color:#666;">検索中…</div>';
+      fetching = true;
+      statusEl.textContent = '読み込み中…';
       try{
+        const url = new URL('https://www.googleapis.com/customsearch/v1');
+        url.searchParams.set('key', GOOGLE_API_KEY);
+        url.searchParams.set('cx', GOOGLE_CX);
+        url.searchParams.set('q', q);
+        url.searchParams.set('searchType', 'image');
+        url.searchParams.set('num', '10');
+        url.searchParams.set('start', String(startIndex));
         const r = await fetch(url.toString());
         const data = await r.json();
-        const items = data.items || [];
-        renderResults(items);
-
-        startIndex = start;
-        pageEl.textContent = String(1 + Math.floor((startIndex-1)/10));
-        prevBtn.disabled = startIndex <= 1;
-        nextBtn.disabled = !data.queries || !data.queries.nextPage;
+        renderItems(data.items || []);
+        hasNext = !!(data.queries && data.queries.nextPage);
+        if(hasNext){ startIndex += 10; }
+        statusEl.textContent = hasNext ? 'スクロールでさらに表示' : '以上です';
       }catch(e){
-        gridEl.innerHTML = `<div class="warn">検索エラー: ${escapeHtml(String(e))}</div>`;
+        statusEl.textContent = '読み込みに失敗しました';
+      }finally{
+        fetching = false;
       }
     }
 
-    // ====== イベントバインド ======
+    function resetAndSearch(){
+      gridEl.innerHTML = '';
+      seenLinks.clear();
+      startIndex = 1;
+      hasNext = true;
+      fetchNext();
+    }
+
+    // ====== Events ======
     kwInput.addEventListener('keydown', (e)=>{
       if(e.key === 'Enter'){
         e.preventDefault();
@@ -213,21 +163,206 @@
         keywords.push(v);
         kwInput.value = '';
         renderChips();
-        updateQueryView();
+      }
+    });
+    searchBtn.addEventListener('click', resetAndSearch);
+    clearBtn.addEventListener('click', ()=>{ keywords=[]; renderChips(); gridEl.innerHTML=''; statusEl.textContent=''; });
+
+    // Infinite scroll
+    window.addEventListener('scroll', ()=>{
+      const scrollPos = window.scrollY + window.innerHeight;
+      const docH = document.documentElement.scrollHeight;
+      if(docH - scrollPos < 600){ // 末尾600px手前で次を読む
+        fetchNext();
       }
     });
 
-    searchBtn.addEventListener('click', ()=>{ runSearch(1); });
-    clearBtn.addEventListener('click', ()=>{
-      keywords = []; renderChips(); updateQueryView(); gridEl.innerHTML = '';
-      startIndex = 1; pageEl.textContent = '1'; prevBtn.disabled = true; nextBtn.disabled = true;
+    // 初期（空）
+    renderChips();
+  })();</script>
+</body>
+</html>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IG-like AND Search</title>
+  <style>
+    :root { --gap: 2px; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#111; background:#fff; }
+
+    /* Top bar */
+    header { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #eee; }
+    .bar { display:flex; gap:8px; align-items:center; padding:10px; }
+    .brand { font-weight:700; font-size:16px; }
+    .chip-input { display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%; }
+    .chip-input input { flex:1; min-width:160px; padding:10px 12px; border:1px solid #ddd; border-radius:10px; }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f3f3f3; border:1px solid #e7e7e7; border-radius:999px; font-size:13px; }
+    .chip button { border:none; background:transparent; cursor:pointer; padding:0 2px; font-size:16px; line-height:1; }
+    .button { padding:10px 14px; border:1px solid #ddd; background:#fafafa; border-radius:10px; cursor:pointer; }
+
+    /* IG-like 3-column grid */
+    main { padding: var(--gap); }
+    .grid { display:grid; gap: var(--gap); grid-template-columns: repeat(3, 1fr); }
+    .card { position:relative; aspect-ratio:1/1; overflow:hidden; background:#f6f6f6; }
+    .card a { display:block; width:100%; height:100%; }
+    .card img { width:100%; height:100%; object-fit:cover; display:block; }
+    .badge { position:absolute; left:6px; bottom:6px; background: rgba(0,0,0,.55); color:#fff; font-size:11px; padding:2px 6px; border-radius:6px; }
+
+    /* Minimal status */
+    .status { padding:8px 10px; color:#666; font-size:12px; border-top:1px solid #f4f4f4; }
+    .warn { background:#fff7f7; border:1px solid #ffd7d7; color:#a40000; padding:8px 10px; border-radius:8px; margin:8px 10px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="brand">検索</div>
+      <div class="chip-input">
+        <div id="chips" class="chips"></div>
+        <input id="kw" placeholder="キーワードを入力して Enter で追加（AND）" />
+      </div>
+      <button id="searchBtn" class="button">検索</button>
+      <button id="clearBtn" class="button">リセット</button>
+    </div>
+  </header>
+
+  <div id="keyWarn" class="warn" style="display:none;">APIキーを設定してください。</div>
+
+  <main>
+    <div id="grid" class="grid"></div>
+    <div id="status" class="status"></div>
+  </main>
+
+  <script>
+    // ====== Settings ======
+    const GOOGLE_API_KEY = 'API_KEY_HERE'; // ← 必ずHTTPリファラ制限を設定
+    const GOOGLE_CX = '3419ec5b148fd47ea';
+
+    // ====== State ======
+    const chipsEl = document.getElementById('chips');
+    const kwInput = document.getElementById('kw');
+    const gridEl = document.getElementById('grid');
+    const searchBtn = document.getElementById('searchBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const statusEl = document.getElementById('status');
+    const keyWarn = document.getElementById('keyWarn');
+
+    let keywords = [];
+    let fetching = false;
+    let startIndex = 1; // 1,11,21 ...
+    let hasNext = true;
+    const seenLinks = new Set(); // 重複排除
+
+    // ====== Helpers ======
+    function escapeHtml(s){
+      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+    }
+    function renderChips(){
+      chipsEl.innerHTML = '';
+      keywords.forEach((w,i)=>{
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.innerHTML = `<span>${escapeHtml(w)}</span>`;
+        const x = document.createElement('button');
+        x.setAttribute('aria-label','remove');
+        x.textContent = '×';
+        x.addEventListener('click', ()=>{ keywords.splice(i,1); renderChips(); });
+        chip.appendChild(x);
+        chipsEl.appendChild(chip);
+      });
+    }
+    function buildQuery(){
+      if(!keywords.length) return '';
+      const andExpr = keywords.map(w => `"${w}"`).join(' AND ');
+      return `site:instagram.com (${andExpr})`;
+    }
+    function pickThumb(item){
+      return item?.image?.thumbnailLink || item?.link || null;
+    }
+    function renderItems(items){
+      for(const it of (items||[])){
+        const thumb = pickThumb(it);
+        const link = it?.image?.contextLink || it?.link;
+        if(!thumb || !link) continue;
+        if(seenLinks.has(link)) continue;
+        seenLinks.add(link);
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <a href="${link}" target="_blank" rel="noopener">
+            <img loading="lazy" src="${thumb}" alt="" />
+            <span class="badge">画像</span>
+          </a>`;
+        gridEl.appendChild(card);
+      }
+    }
+
+    async function fetchNext(){
+      if(fetching || !hasNext) return;
+      const q = buildQuery();
+      if(!q){ statusEl.textContent = 'キーワードを追加してください'; return; }
+      if(!GOOGLE_API_KEY || GOOGLE_API_KEY === 'API_KEY_HERE'){ keyWarn.style.display=''; return; } else { keyWarn.style.display='none'; }
+
+      fetching = true;
+      statusEl.textContent = '読み込み中…';
+      try{
+        const url = new URL('https://www.googleapis.com/customsearch/v1');
+        url.searchParams.set('key', GOOGLE_API_KEY);
+        url.searchParams.set('cx', GOOGLE_CX);
+        url.searchParams.set('q', q);
+        url.searchParams.set('searchType', 'image');
+        url.searchParams.set('num', '10');
+        url.searchParams.set('start', String(startIndex));
+        const r = await fetch(url.toString());
+        const data = await r.json();
+        renderItems(data.items || []);
+        hasNext = !!(data.queries && data.queries.nextPage);
+        if(hasNext){ startIndex += 10; }
+        statusEl.textContent = hasNext ? 'スクロールでさらに表示' : '以上です';
+      }catch(e){
+        statusEl.textContent = '読み込みに失敗しました';
+      }finally{
+        fetching = false;
+      }
+    }
+
+    function resetAndSearch(){
+      gridEl.innerHTML = '';
+      seenLinks.clear();
+      startIndex = 1;
+      hasNext = true;
+      fetchNext();
+    }
+
+    // ====== Events ======
+    kwInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        const v = kwInput.value.trim();
+        if(!v) return;
+        keywords.push(v);
+        kwInput.value = '';
+        renderChips();
+      }
+    });
+    searchBtn.addEventListener('click', resetAndSearch);
+    clearBtn.addEventListener('click', ()=>{ keywords=[]; renderChips(); gridEl.innerHTML=''; statusEl.textContent=''; });
+
+    // Infinite scroll
+    window.addEventListener('scroll', ()=>{
+      const scrollPos = window.scrollY + window.innerHeight;
+      const docH = document.documentElement.scrollHeight;
+      if(docH - scrollPos < 600){ // 末尾600px手前で次を読む
+        fetchNext();
+      }
     });
 
-    prevBtn.addEventListener('click', ()=>{ if(startIndex>1) runSearch(startIndex-10); });
-    nextBtn.addEventListener('click', ()=>{ runSearch(startIndex+10); });
-
-    // 初期例（空のままでもOK。必要ならサンプルを入れる）
-    // keywords = ['立川', 'カフェ']; renderChips(); updateQueryView();
+    // 初期（空）
+    renderChips();
   </script>
 </body>
 </html>
